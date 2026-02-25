@@ -1,0 +1,22 @@
+{
+  "name": "rss-e-reddit",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "restart": "lsof -ti:3000 | xargs kill -9 2>/dev/null; bun src/main.ts"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.0",
+    "drizzle-orm": "^0.29.0",
+    "hono": "^4.0.0",
+    "html-entities": "^2.5.0",
+    "libsql": "^0.3.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "drizzle-kit": "^0.20.0"
+  }
+}
