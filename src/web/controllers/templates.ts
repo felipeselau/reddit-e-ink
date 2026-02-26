@@ -3,17 +3,25 @@ import type { Feed, Post, Comment } from '../../domain';
 interface Settings {
   fontSize: number;
   showAllPosts: boolean;
+  homeSubreddit: string;
   toQuery(): string;
 }
 
 class SettingsImpl implements Settings {
   constructor(
     public fontSize: number = 18,
-    public showAllPosts: boolean = true
+    public showAllPosts: boolean = true,
+    public homeSubreddit: string = ''
   ) {}
 
   toQuery(): string {
-    return `?fontSize=${this.fontSize}&showAllPosts=${this.showAllPosts}`;
+    const params = new URLSearchParams();
+    params.set('fontSize', String(this.fontSize));
+    params.set('showAllPosts', String(this.showAllPosts));
+    if (this.homeSubreddit) {
+      params.set('homeSubreddit', this.homeSubreddit);
+    }
+    return '?' + params.toString();
   }
 }
 
@@ -29,14 +37,16 @@ function parseSettings(query: Record<string, string | undefined>): Settings {
   const fontSize = parseInt(query.fontSize || '18', 10);
   const showAllPostsRaw = query.showAllPosts;
   const showAllPosts = showAllPostsRaw === undefined ? true : showAllPostsRaw === 'true';
+  const homeSubreddit = query.homeSubreddit || '';
   return new SettingsImpl(
     isNaN(fontSize) ? 18 : fontSize,
-    showAllPosts
+    showAllPosts,
+    homeSubreddit
   );
 }
 
 export function renderLayout(content: string, title?: string, settings: Settings = DEFAULT_SETTINGS): string {
-  const pageTitle = title ? `${title} | Hipster RSS` : 'Hipster RSS';
+  const pageTitle = title ? `${title} | Reddit RSS` : 'Reddit RSS';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,12 +87,17 @@ export function renderFeed(feed: Feed, pagination: {
   <h1>${pageTitle}</h1>
   <div class="subtitle">E-Ink Optimized RSS Reader</div>
   <nav class="nav">
-    <a href="/home${q}">Home</a> |
+    <a href="/${q}">Home</a> |
     <a href="/manage${q}">Manage</a> |
     <a href="/settings${q}">Settings</a>
   </nav>
 </header>
-
+    
+<form action="/r/" method="get" style="display:flex;justify-content:flex-start;align-items:center;margin-bottom:1em">
+  r/
+  <input type="text" name="q" placeholder="subreddit" style="width:70%;padding:0.2em">
+  <button type="submit" style="padding:0.3em 1em;width: 30%;margin-left:0.5em;cursor:pointer">Go</button>
+</form>
 <nav class="subreddits">
   ${subredditsNav}
 </nav>
@@ -138,10 +153,13 @@ export function renderPost(post: Post, settings: Settings = DEFAULT_SETTINGS): s
 <header class="header">
   <h1><a href="/r/${post.subreddit}${q}">/r/${post.subreddit}</a></h1>
   <nav class="nav">
-    <a href="/">Home</a> |
+    <a href="/${q}">Home</a> |
     <a href="/r/${post.subreddit}${q}">Back to feed</a> |
     <a href="/manage${q}">Manage</a> |
     <a href="/settings${q}">Settings</a>
+    <form action="/r/" method="get" style="display:inline;margin-left:1em">
+      <input type="text" name="q" placeholder="r/" style="width:80px;padding:0.2em">
+    </form>
   </nav>
 </header>
 
@@ -198,8 +216,11 @@ export function renderSettings(settings: Settings = DEFAULT_SETTINGS): string {
 <header class="header">
   <h1>Settings</h1>
   <nav class="nav">
-    <a href="/">Home</a> |
+    <a href="/${q}">Home</a> |
     <a href="/manage${q}">Manage</a>
+    <form action="/r/" method="get" style="display:inline;margin-left:1em">
+      <input type="text" name="q" placeholder="r/" style="width:80px;padding:0.2em">
+    </form>
   </nav>
 </header>
 
@@ -239,31 +260,57 @@ export function renderSettings(settings: Settings = DEFAULT_SETTINGS): string {
   return renderLayout(content, 'Settings', settings);
 }
 
-export function renderManage(subscriptions: string[], settings: Settings = DEFAULT_SETTINGS): string {
+interface SubscriptionItem {
+  subreddit: string;
+  isHomepage: boolean;
+}
+
+export function renderManage(subscriptions: SubscriptionItem[], settings: Settings = DEFAULT_SETTINGS): string {
   const q = settings.toQuery();
+  const showHomepageSelector = !settings.showAllPosts && subscriptions.length > 0;
   
   const subsHtml = subscriptions
     .map(sub => `
 <div class="manage-item">
-  <span><a href="/r/${sub}${q}">/r/${sub}</a></span>
+  <span><a href="/r/${sub.subreddit}${q}">/r/${sub.subreddit}</a>${sub.isHomepage ? ' <strong>(Homepage)</strong>' : ''}</span>
   <form method="POST" action="/manage${q}">
     <input type="hidden" name="action" value="remove">
-    <input type="hidden" name="subreddit" value="${sub}">
+    <input type="hidden" name="subreddit" value="${sub.subreddit}">
     <button type="submit" class="sub-btn">Remove</button>
   </form>
 </div>`)
     .join('');
 
+  const homepageSelectorHtml = showHomepageSelector ? `
+  <div class="manage-homepage">
+    <h3>Homepage Subreddit</h3>
+    <p>Select which subreddit to show when visiting the home page:</p>
+    <form method="POST" action="/manage${q}">
+      <input type="hidden" name="action" value="setHomepage">
+      <select name="subreddit" class="sub-input">
+        ${subscriptions.map(sub => 
+          `<option value="${sub.subreddit}" ${sub.isHomepage ? 'selected' : ''}>${sub.subreddit}</option>`
+        ).join('')}
+      </select>
+      <button type="submit" class="sub-btn">Set as Homepage</button>
+    </form>
+  </div>
+` : '';
+
   const content = `
 <header class="header">
   <h1>Manage Subscriptions</h1>
   <nav class="nav">
-    <a href="/">Home</a> |
+    <a href="/${q}">Home</a> |
     <a href="/settings${q}">Settings</a>
+    <form action="/r/" method="get" style="display:inline;margin-left:1em">
+      <input type="text" name="q" placeholder="r/" style="width:80px;padding:0.2em">
+    </form>
   </nav>
 </header>
 
 <main>
+  ${homepageSelectorHtml}
   <h2>Your Subreddits</h2>
   <div class="manage-list">
     ${subsHtml || '<p>No subscriptions yet.</p>'}
@@ -293,7 +340,7 @@ export function render404(message: string, settings: Settings = DEFAULT_SETTINGS
 <header class="header">
   <h1>Error</h1>
   <nav class="nav">
-    <a href="/">Home</a>
+    <a href="/${q}">Home</a>
   </nav>
 </header>
 

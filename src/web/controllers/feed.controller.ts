@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { getFeed, getPost, getHomeFeed } from '../../application/getFeed.usecase';
-import { getSubscriptions, addSubscription, removeSubscription } from '../../infra/db/subscriptions';
+import { getSubscriptions, addSubscription, removeSubscription, setHomepageSubreddit, getHomepageSubreddit } from '../../infra/db/subscriptions';
 import { renderFeed, renderPost, render404, renderSettings, renderManage, parseSettings } from './templates';
 
 export async function feedController(c: Context) {
@@ -57,15 +57,35 @@ export async function postController(c: Context) {
 
 export async function indexController(c: Context) {
   const settings = parseSettings(c.req.query());
+  
+  let targetSubreddit: string;
+  
   if (settings.showAllPosts) {
     return c.redirect(`/home${settings.toQuery()}`);
   }
-  return c.redirect(`/r/programming${settings.toQuery()}`);
+  
+  if (settings.homeSubreddit) {
+    targetSubreddit = settings.homeSubreddit;
+  } else {
+    const dbHomepage = await getHomepageSubreddit();
+    targetSubreddit = dbHomepage || 'programming';
+  }
+  
+  return c.redirect(`/r/${targetSubreddit}${settings.toQuery()}`);
 }
 
 export async function settingsController(c: Context) {
   const settings = parseSettings(c.req.query());
   return c.html(renderSettings(settings));
+}
+
+export async function subredditSearchController(c: Context) {
+  const query = c.req.query('q');
+  if (!query) {
+    return c.redirect('/');
+  }
+  const settings = parseSettings(c.req.query());
+  return c.redirect(`/r/${query}${settings.toQuery()}`);
 }
 
 export async function manageController(c: Context) {
@@ -80,13 +100,15 @@ export async function manageController(c: Context) {
       await addSubscription(subreddit);
     } else if (action === 'remove' && subreddit) {
       await removeSubscription(subreddit);
+    } else if (action === 'setHomepage' && subreddit) {
+      await setHomepageSubreddit(subreddit);
     }
     
     return c.redirect(`/manage${settings.toQuery()}`);
   }
   
   const subscriptions = await getSubscriptions();
-  return c.html(renderManage(subscriptions.map(s => s.subreddit), settings));
+  return c.html(renderManage(subscriptions, settings));
 }
 
 export async function healthController(c: Context) {

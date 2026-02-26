@@ -17,6 +17,7 @@ export const feedCache = sqliteTable('feed_cache', {
 export const subscriptions = sqliteTable('subscriptions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   subreddit: text('subreddit').notNull().unique(),
+  isHomepage: integer('is_homepage').default(0).notNull(),
   addedAt: integer('added_at', { mode: 'timestamp' }).notNull(),
 });
 

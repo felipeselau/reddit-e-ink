@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 export interface Subscription {
   id: number;
   subreddit: string;
+  isHomepage: boolean;
   addedAt: Date;
 }
 
@@ -13,6 +14,7 @@ export async function getSubscriptions(): Promise<Subscription[]> {
   return result.map(row => ({
     id: row.id,
     subreddit: row.subreddit,
+    isHomepage: row.isHomepage === 1,
     addedAt: new Date(row.addedAt),
   }));
 }
@@ -59,4 +61,32 @@ export async function isSubscribed(subreddit: string): Promise<boolean> {
     .get();
   
   return !!existing;
+}
+
+export async function getHomepageSubreddit(): Promise<string | null> {
+  const result = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.isHomepage, 1))
+    .get();
+  
+  return result ? result.subreddit : null;
+}
+
+export async function setHomepageSubreddit(subreddit: string): Promise<boolean> {
+  const normalized = subreddit.toLowerCase().trim().replace(/^\/?r\//, '');
+  
+  await db
+    .update(subscriptions)
+    .set({ isHomepage: 0 })
+    .where(eq(subscriptions.isHomepage, 1))
+    .run();
+  
+  const result = await db
+    .update(subscriptions)
+    .set({ isHomepage: 1 })
+    .where(eq(subscriptions.subreddit, normalized))
+    .run();
+  
+  return result.rowsAffected > 0;
 }
