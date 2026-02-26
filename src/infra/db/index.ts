@@ -2,8 +2,19 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema.ts';
 
+function getDbUrl(): string {
+  const dbUrl = Deno.env.get('DATABASE_URL');
+  if (!dbUrl) {
+    return 'file:./data.db';
+  }
+  if (dbUrl.startsWith('libsql://')) {
+    return dbUrl.replace('libsql://', 'https://');
+  }
+  return dbUrl;
+}
+
 const client = createClient({
-  url: Deno.env.get('DATABASE_URL') || 'file:./data.db',
+  url: getDbUrl(),
 });
 
 export const db = drizzle(client, { schema });
