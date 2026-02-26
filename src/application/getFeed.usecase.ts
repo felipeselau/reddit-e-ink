@@ -1,7 +1,7 @@
-import type { Feed, Post } from '../domain';
-import { fetchRedditFeed, fetchPostComments, fetchMultiFeed } from '../infra/rss';
-import { getCachedFeed, setCachedFeed } from '../infra/cache';
-import { getSubscriptions } from '../infra/db/subscriptions';
+import type { Feed, Post } from '../domain/index.ts';
+import { fetchRedditFeed, fetchPostComments, fetchMultiFeed } from '../infra/rss/reddit.client.ts';
+import { getCachedFeed, setCachedFeed } from '../infra/cache/cache.service.ts';
+import { getSubscriptions } from '../infra/db/subscriptions.ts';
 
 export interface GetFeedInput {
   subreddit: string;

@@ -1,7 +1,7 @@
-import { db } from '../db';
-import { feedCache } from '../db/schema';
+import { db } from '../db/index.ts';
+import { feedCache } from '../db/schema.ts';
 import { eq } from 'drizzle-orm';
-import type { Feed } from '../../domain';
+import type { Feed } from '../../domain/index.ts';
 
 const DEFAULT_TTL_MINUTES = 15;
 

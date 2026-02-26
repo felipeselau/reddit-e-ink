@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { feedController, postController, indexController, homeController, healthController, settingsController, manageController, subredditSearchController } from '../controllers/feed.controller';
+import { feedController, postController, indexController, homeController, healthController, settingsController, manageController, subredditSearchController } from '../controllers/feed.controller.ts';
 
 const app = new Hono();
 

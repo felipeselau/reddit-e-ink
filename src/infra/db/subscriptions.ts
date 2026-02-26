@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { subscriptions } from '../db/schema';
+import { db } from '../db/index.ts';
+import { subscriptions } from '../db/schema.ts';
 import { eq, sql } from 'drizzle-orm';
 
 export interface Subscription {

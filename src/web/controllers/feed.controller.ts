@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
-import { getFeed, getPost, getHomeFeed } from '../../application/getFeed.usecase';
-import { getSubscriptions, addSubscription, removeSubscription, setHomepageSubreddit, getHomepageSubreddit } from '../../infra/db/subscriptions';
-import { renderFeed, renderPost, render404, renderSettings, renderManage, parseSettings } from './templates';
+import { getFeed, getPost, getHomeFeed } from '../../application/getFeed.usecase.ts';
+import { getSubscriptions, addSubscription, removeSubscription, setHomepageSubreddit, getHomepageSubreddit } from '../../infra/db/subscriptions.ts';
+import { renderFeed, renderPost, render404, renderSettings, renderManage, parseSettings } from './templates.ts';
 
 export async function feedController(c: Context) {
   const subreddit = c.req.param('subreddit');

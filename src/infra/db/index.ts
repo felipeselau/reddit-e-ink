@@ -1,17 +1,9 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
-import * as schema from './schema';
-import { mkdirSync, existsSync } from 'fs';
-import { dirname } from 'path';
-
-const dbPath = process.env.DATABASE_URL?.replace('file:', '') || './data.db';
-
-if (!existsSync(dirname(dbPath))) {
-  mkdirSync(dirname(dbPath), { recursive: true });
-}
+import * as schema from './schema.ts';
 
 const client = createClient({
-  url: process.env.DATABASE_URL || 'file:./data.db',
+  url: Deno.env.get('DATABASE_URL') || 'file:./data.db',
 });
 
 export const db = drizzle(client, { schema });
@@ -44,11 +36,11 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       subreddit TEXT NOT NULL UNIQUE,
+      is_homepage INTEGER DEFAULT 0 NOT NULL,
       added_at INTEGER NOT NULL
     )
   `);
   
-  // Add default subscriptions if none exist
   const existing = await client.execute('SELECT COUNT(*) as count FROM subscriptions');
   if (existing.rows[0].count === 0) {
     for (const sub of DEFAULT_SUBSCRIPTIONS) {

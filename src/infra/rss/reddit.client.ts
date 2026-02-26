@@ -1,6 +1,6 @@
 import Parser from 'rss-parser';
 import { decode } from 'html-entities';
-import type { Feed, Post, Comment } from '../../domain';
+import type { Feed, Post, Comment } from '../../domain/index.ts';
 
 const parser = new Parser({
   timeout: 10000,
