@@ -25,42 +25,58 @@ const DEFAULT_SUBSCRIPTIONS = [
 ];
 
 export async function initDb() {
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS subreddits (
-      name TEXT PRIMARY KEY,
-      display_name TEXT NOT NULL,
-      is_favorite INTEGER DEFAULT 0 NOT NULL,
-      created_at INTEGER NOT NULL
-    )
-  `);
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS subreddits (
+        name TEXT PRIMARY KEY,
+        display_name TEXT NOT NULL,
+        is_favorite INTEGER DEFAULT 0 NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `);
+  } catch (e) {
+    // Table may already exist
+  }
   
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS feed_cache (
-      subreddit TEXT PRIMARY KEY,
-      data TEXT NOT NULL,
-      fetched_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL
-    )
-  `);
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS feed_cache (
+        subreddit TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        fetched_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      )
+    `);
+  } catch (e) {
+    // Table may already exist
+  }
   
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS subscriptions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      subreddit TEXT NOT NULL UNIQUE,
-      is_homepage INTEGER DEFAULT 0 NOT NULL,
-      added_at INTEGER NOT NULL
-    )
-  `);
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subreddit TEXT NOT NULL UNIQUE,
+        is_homepage INTEGER DEFAULT 0 NOT NULL,
+        added_at INTEGER NOT NULL
+      )
+    `);
+  } catch (e) {
+    // Table may already exist
+  }
   
-  const existing = await client.execute('SELECT COUNT(*) as count FROM subscriptions');
-  if (existing.rows[0].count === 0) {
-    for (const sub of DEFAULT_SUBSCRIPTIONS) {
-      await client.execute(
-        'INSERT INTO subscriptions (subreddit, added_at) VALUES (?, ?)',
-        [sub, Date.now()]
-      );
+  try {
+    const existing = await client.execute('SELECT COUNT(*) as count FROM subscriptions');
+    if (existing.rows[0].count === 0) {
+      for (const sub of DEFAULT_SUBSCRIPTIONS) {
+        await client.execute({
+          sql: 'INSERT INTO subscriptions (subreddit, added_at) VALUES (?, ?)',
+          args: [sub, Date.now()]
+        });
+      }
+      console.log('Default subscriptions added');
     }
-    console.log('Default subscriptions added');
+  } catch (e) {
+    console.log('Subscriptions may already exist:', e);
   }
   
   console.log('Database initialized');
